@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>EduSearch Adjektif</title>
+  <style>
+    :root{
+      --bg1:#fff7e6;
+      --bg2:#e8f7ff;
+      --card:#ffffff;
+      --primary:#0b63d3;
+      --accent:#ff6f61;
+      --muted:#555;
+    }
+    body{
+      font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      margin:0;
+      padding:24px;
+      background: linear-gradient(135deg,var(--bg1),var(--bg2));
+      color: #1a1a1a;
+    }
+    .wrap{ max-width:960px; margin:0 auto; }
+    header{ text-align:center; margin-bottom:18px; }
+    h1{ margin:6px 0; color:var(--primary); font-size:28px; }
+    p.lead{ margin:0; color:var(--muted); }
+    .search-row{ display:flex; gap:10px; margin:18px 0; justify-content:center; }
+    input[type="text"]{
+      width:68%; padding:12px 14px; border-radius:12px; border:1px solid #cfcfcf;
+      font-size:16px; box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+    }
+    button{ padding:12px 16px; border-radius:10px; border:none; background:var(--accent); color:white; font-weight:600; cursor:pointer; }
+    .card{ background:var(--card); border-radius:14px; padding:16px; box-shadow: 0 6px 18px rgba(12,40,80,0.06); margin:14px 0; }
+    .meta{ display:flex; gap:12px; align-items:center; margin-bottom:8px; }
+    .badge{ background:linear-gradient(90deg,var(--primary),#4ea1ff); color:white; padding:6px 10px; border-radius:999px; font-weight:700; font-size:14px; }
+    .cat{ font-weight:700; color:#0d47a1; }
+    .adj{ font-size:22px; font-weight:800; color:#2b2b2b; margin:8px 0; }
+    ol{ padding-left:18px; margin:8px 0 0 0; }
+    .hint{ color:#666; font-size:14px; margin-top:6px; }
+    .footer{ text-align:center; margin-top:18px; color:#666; font-size:13px; }
+    .small{ font-size:14px; color:#444; }
+    .notfound{ color:#b00020; font-weight:700; }
+    .show-all{ background:#fff; border:1px dashed #ddd; padding:10px; border-radius:10px; margin-top:8px; }
+    @media(max-width:720px){
+      input[type="text"]{ width:100%; }
+      .search-row{ flex-direction:column; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>EduSearch Adjektif</h1>
+      <p class="lead">Taip satu kata adjektif (contoh: <em>besar</em>, <em>merah</em>, <em>gembira</em>) — laman akan paparkan jenis dan 3 ayat contoh yang tepat.</p>
+    </header>
+
+    <div class="search-row">
+      <input id="q" type="text" placeholder="Taip kata adjektif di sini, kemudian tekan Enter atau klik Cari">
+      <button id="searchBtn">Cari</button>
+    </div>
+
+    <div id="resultArea"></div>
+
+    <div class="card show-all small">
+      <strong>Petua penggunaan:</strong> Sistem ini fokus memaparkan **satu hasil padanan**. Jika tiada hasil, cuba kata lain atau semak ejaan. Anda juga boleh klik butang "Senarai Kata" di bawah untuk melihat semua kata adjektif yang tersedia.
+      <div style="margin-top:8px;"><button id="showList" style="background:#0b63d3">Senarai Kata</button></div>
+    </div>
+
+    <div id="listArea" class="card" style="display:none;"></div>
+
+    <div class="footer">Dibina untuk murid sekolah rendah — <em>EduSearch Adjektif</em>.</div>
+  </div>
+
+<script>
+// Data adjektif: setiap adjektif mempunyai kategori dan 3 ayat contoh yang lengkap dan betul (Bahasa Melayu).
+const data = {
+  "keadaan_sifat": {
+    "label":"Keadaan / Sifat",
+    "items": {
+      "rajin":["Ali seorang murid yang rajin belajar setiap hari.","Adik menjadi rajin apabila guru memberi pujian.","Kumpulan itu bekerja secara rajin untuk menyiapkan projek."],
+      "malas":["Jika Hassan malas, kerja rumahnya tidak akan siap.","Kucing itu nampak malas tidur di atas sofa.","Sikap malas boleh menyebabkan keputusan sekolah merosot."],
+      "tinggi":["Pokok di belakang sekolah itu sangat tinggi.","Dia mencapai rak yang tinggi untuk mengambil buku.","Rumah perabot itu memerlukan siling yang tinggi."],
+      "pendek":["Lagu itu mempunyai bahagian yang pendek dan mudah dihafal.","Jalan di kampung itu agak pendek berbanding lebuh raya.","Guru meminta murid menulis jawapan dalam ayat yang pendek."],
+      "comel":["Anak ayam itu kelihatan comel dan gebu.","Kucing itu sangat comel sehingga semua murid ingin menyentuhnya.","Dalam pertandingan, topeng kartun yang comel menarik perhatian juri."]
+    }
+  },
+  "warna": {
+    "label":"Warna",
+    "items": {
+      "merah":["Bendera itu berkibar dengan warna merah yang terang.","Dia memakai kasut merah semasa perarakan sekolah.","Bunga mawar merah itu menarik pandangan kawan-kawannya."],
+      "biru":["Langit pada pagi yang cerah kelihatan biru.","Baju seragam sekolah berwarna biru gelap.","Lencana merah jambu dan biru dipamerkan di papan kenyataan."],
+      "hijau":["Rumput padang sangat hijau selepas hujan.","Taman sekolah ditanam dengan pokok hijau yang rendang.","Buku nota itu berkulit hijau muda."],
+      "kuning":["Mentol itu memancarkan cahaya kuning lembut.","Bunga matahari berwarna kuning ceria.","Baju keselamatan pekerja itu berjalur kuning terang."],
+      "ungu":["Kain skirt itu berwarna ungu gelap.","Bunga orkid ungu tumbuh di sudut kelas.","Pensil pewarna ungu digunakan untuk projek seni."]
+    }
+  },
+  "bentuk": {
+    "label":"Bentuk",
+    "items": {
+      "bulat":["Meja di kantin berbentuk bulat agar murid dapat berkongsi makanan.","Balingan bola itu menghasilkan bayang bulat di lantai.","Cawan plastik dalam set itu mempunyai tepi yang bulat."],
+      "panjang":["Jalan masuk ke sekolah itu sangat panjang.","Dia menulis satu ayat yang panjang di papan putih.","Anak panah berakhir pada garis panjang di padang."],
+      "leper":["Batu yang ditemui di tepi sungai itu kelihatan leper.","Roti canai yang digoreng menjadi leper dan rangup.","Kertas itu ditekan sehingga menjadi leper dan rata."],
+      "tirus":["Kerucut ais krim itu mempunyai hujung yang tirus.","Bentuk bangunan itu kelihatan tirus dari jauh.","Potongan kain itu disiapkan supaya hujungnya tirus. "],
+      "empat_segi":["Luas papan putih di kelas adalah empat segi.","Kotak makanan datang dalam bentuk empat segi.","Kertas pembalut itu dipotong menjadi helaian empat segi."]
+    }
+  },
+  "pancaindera": {
+    "label":"Pancaindera",
+    "items": {
+      "wangi":["Bunga di taman sekolah itu sangat wangi baunya.","Sabun yang digunakan Farah harum dan wangi selepas mandi.","Dapur asrama dipenuhi dengan bau makanan yang wangi."],
+      "pahit":["Ubat itu mempunyai rasa pahit tetapi berkesan.","Cikgu mengajar bahawa beberapa tumbuhan mempunyai rasa pahit.","Kopi pahit itu membuatkan Amir membuat muka sambil menelan."],
+      "manis":["Buah epal itu rasa manis dan segar.","Kek hari jadi itu sangat manis sehingga semua murid bergembira.","Kopi susu yang sedikit manis menjadi kegemaran ibu."],
+      "lembut":["Sofa di bilik rehat itu terasa lembut ketika diduduki.","Bulu ayam itu sangat lembut sentuhannya.","Suaranya lembut ketika membaca cerita kepada adik."],
+      "bising":["Kawasan pembinaan sangat bising pada waktu pagi.","Bilik itu menjadi bising apabila murid bermain muzik.","Suara alat permainan itu terlalu bising untuk tidur."]
+    }
+  },
+  "ukuran": {
+    "label":"Ukuran",
+    "items": {
+      "besar":["Beg yang dibawa oleh Amir sangat besar dan berat.","Sekolah itu mempunyai dewan besar untuk aktiviti sukan.","Rumah itu mempunyai tingkap besar yang terang."],
+      "kecil":["Anak ikan itu sangat kecil dan sukar dilihat.","Dia menyimpan duit syiling kecil di dalam poket.","Kertas nota kecil itu mudah hilang jika tidak disimpan rapi."],
+      "luas":["Padang permainan sekolah luas dan sesuai untuk banyak aktiviti.","Perpustakaan kampung mempunyai ruang yang luas untuk membaca.","Ladang padi itu kelihatan luas dari atas bukit."],
+      "sempit":["Lorong di antara meja menjadi sempit apabila ramai murid.","Kotak itu terlalu sempit untuk memuatkan semua buku.","Jalan kampung yang sempit memerlukan pemanduan berhati-hati."],
+      "berat":["Buku teks kimia itu agak berat untuk dibawa pulang.","Pasu bunga di koridor terlalu berat untuk diangkat oleh murid.","Beg sekolah yang berat boleh menyebabkan sakit belakang."]
+    }
+  },
+  "cara": {
+    "label":"Cara",
+    "items": {
+      "cepat":["Larian itu dimenangi oleh murid yang berlari cepat.","Dia menyiapkan kerja rumah dengan cepat sebelum waktu rehat.","Bas tiba dan bergerak pergi dengan cepat."," "],
+      "perlahan":["Burung itu terbang perlahan di atas pokok.","Ibu mengajar anak menulis dengan perlahan supaya tulisan cantik.","Kereta bergerak perlahan kerana ada pembaikan jalan."],
+      "sopan":["Murid itu memberi salam dengan tutur kata yang sopan.","Apabila bercakap dengan guru, kita perlu bersikap sopan.","Dia menjawab soalan cikgu dengan cara yang sopan dan tenang."],
+      "kasar":["Permukaan batu itu terasa kasar apabila disentuh.","Bahasa yang kasar tidak sesuai digunakan di sekolah.","Aksi bola itu membuatkan kasut menjadi kasar dan berlumpur."],
+      "tenang":["Dia duduk dengan tenang semasa mendengar arahan guru.","Suasana perpustakaan sangat tenang untuk belajar.","Ibu bernafas dengan tenang ketika membantu adik mengulang kaji."]
+    }
+  },
+  "jarak": {
+    "label":"Jarak",
+    "items": {
+      "dekat":["Rumah Ahmad terletak dekat dengan sekolahnya.","Duduklah dekat supaya kamu boleh mendengar dengan jelas.","Kafe itu hanya dekat di sebelah padang permainan."],
+      "jauh":["Kampung itu jauh dari bandar dan memerlukan perjalanan panjang.","Dia melangkah jauh ke dalam hutan untuk mencari rumpun bunga.","Sekolah menengah itu agak jauh dan memerlukan bas."],
+      "rapat":["Buku-buku disusun rapat di atas rak.","Murid-murid duduk rapat ketika perhimpunan kelas.","Rakan sekelas mereka berkumpulan rapat semasa tugasan kumpulan."],
+      "renggang":["Rak itu renggang kerana belum diisi sepenuhnya.","Hubungan antara dua negara itu agak renggang selepas perjanjian tamat.","Pertengkaran kecil membuat hubungan mereka menjadi renggang seketika."],
+      "hampir":["Bas hampir tiba di perhentian utama sekolah.","Jam hampir menunjukkan pukul lapan bila guru memasuki kelas.","Kami hampir selesai menyiapkan projek kumpulan."]
+    }
+  },
+  "perasaan": {
+    "label":"Perasaan",
+    "items": {
+      "gembira":["Murid-murid berasa gembira selepas tamat peperiksaan.","Dia sangat gembira apabila memenangi pertandingan mewarna.","Ibu tersenyum gembira melihat keputusan anaknya."],
+      "sedih":["Ali kelihatan sedih kerana kucing peliharaannya hilang.","Rakan-rakan merasa sedih apabila majlis tamat dengan tiba-tiba.","Lagu itu membuatkan mereka teringat dan berasa sedih."],
+      "marah":["Guru menjadi marah apabila murid tidak mematuhi peraturan.","Dia cuba tenangkan diri walaupun berasa marah pada mulanya.","Kejadian itu membuatkan ibu bapa marah dan kecewa."],
+      "takut":["Adik kecil itu takut berada di dalam gelap.","Murid takut apabila mendengar bunyi kuat di luar kelas.","Dia takut cuba berenang di kolam yang dalam tanpa guru."],
+      "risau":["Ibu risau apabila anak pulang lambat dari sekolah.","Guru risau tentang keselamatan murid semasa lawatan.","Ayah risau akan keputusan peperiksaan anaknya."]
+    }
+  },
+  "waktu": {
+    "label":"Waktu",
+    "items": {
+      "awal":["Farah datang awal ke sekolah setiap pagi.","Kami memulakan latihan lebih awal untuk persiapan pertandingan.","Bas bertolak awal bagi mengelakkan kesesakan."],
+      "lambat":["Dia terlambat ke kelas kerana trafik yang padat.","Jangan selalu datang lambat ke sekolah kerana ia tidak sopan.","Murid itu menyesal apabila menyerahkan kerja lewat dan mendapat markah rendah."],
+      "segera":["Guru mengarahkan murid menyelesaikan tugasan dengan segera.","Apabila berlaku kecemasan, hubungi nombor bantuan segera.","Kita perlu bertindak segera untuk menjaga keselamatan semua. "],
+      "lewat":["Pertandingan dimulakan lewat kerana hujan lebat.","Kebanyakan bas pulang lewat pada hujung minggu.","Mereka tiba lewat tetapi masih sempat mengambil bahagian."],
+      "kini":["Kini kita belajar topik baru dalam buku teks.","Ibu berkata bahawa kini adalah masa yang sesuai untuk belajar.","Kini, teknologi banyak membantu proses pengajaran dan pembelajaran."]
+    }
+  }
+};
+
+// Flatten list of available adjectives for listing
+function getAllWords(){
+  let list=[];
+  for(const cat in data){
+    let items = data[cat].items;
+    for(const w in items){
+      list.push({word:w, cat:data[cat].label});
+    }
+  }
+  return list.sort((a,b)=> a.word.localeCompare(b.word));
+}
+
+// Render list
+function renderList(){
+  const la = document.getElementById('listArea');
+  const words = getAllWords();
+  let html = '<h3>Senarai Kata Adjektif (tersedia)</h3><ul>';
+  html += words.map(x=>`<li><strong>${x.word}</strong> — <em>${x.cat}</em></li>`).join('');
+  html += '</ul><p class="hint">Klik mana-mana kata dalam senarai untuk melihat contoh (cari akan diisi automatik).</p>';
+  la.innerHTML = html;
+  la.style.display = 'block';
+  // make clickable
+  const lis = la.querySelectorAll('li');
+  lis.forEach((li,i)=>{
+    li.style.cursor='pointer';
+    li.addEventListener('click',()=>{
+      const w = words[i].word;
+      document.getElementById('q').value = w;
+      doSearch(w);
+      window.scrollTo({top:0,behavior:'smooth'});
+    });
+  });
+}
+
+// Search logic: show only one match (exact match prioritized)
+function doSearch(raw){
+  const term = raw.trim().toLowerCase();
+  const area = document.getElementById('resultArea');
+  area.innerHTML = '';
+  if(!term){
+    area.innerHTML = '<div class="card"><div class="notfound">Sila taip kata adjektif untuk mencari. Contoh: <em>besar</em>, <em>merah</em>, <em>gembira</em>.</div></div>';
+    return;
+  }
+
+  // Exact match search
+  for(const cat in data){
+    const items = data[cat].items;
+    if(items.hasOwnProperty(term)){
+      const label = data[cat].label;
+      const examples = items[term];
+      let html = `<div class="card"><div class="meta"><span class="badge">${label}</span></div>`;
+      html += `<div class="adj">${term}</div>`;
+      html += `<div class="small"><strong>Tiga ayat contoh:</strong></div><ol>`;
+      examples.forEach(ex => html += `<li>${ex}</li>`);
+      html += '</ol></div>';
+      area.innerHTML = html;
+      return;
+    }
+  }
+
+  // If no exact match, try partial matches (startsWith or includes) and pick the first
+  let found=null;
+  for(const cat in data){
+    const items = data[cat].items;
+    for(const w in items){
+      if(w.indexOf(term) !== -1){
+        found={cat:cat, word:w, ex:items[w]};
+        break;
+      }
+    }
+    if(found) break;
+  }
+  if(found){
+    const label = data[found.cat].label;
+    let html = `<div class="card"><div class="meta"><span class="badge">${label}</span></div>`;
+    html += `<div class="adj">${found.word}</div>`;
+    html += `<div class="small"><strong>Tiga ayat contoh:</strong></div><ol>`;
+    found.ex.forEach(ex => html += `<li>${ex}</li>`);
+    html += '</ol></div>';
+    area.innerHTML = html;
+    return;
+  }
+
+  // Not found
+  area.innerHTML = '<div class="card"><div class="notfound">Maaf, tiada hasil. Sila cuba kata lain atau semak ejaan.</div></div>';
+}
+
+// Event listeners
+document.getElementById('searchBtn').addEventListener('click', ()=>{
+  const q = document.getElementById('q').value;
+  doSearch(q);
+});
+document.getElementById('q').addEventListener('keydown', (e)=>{
+  if(e.key==='Enter'){ doSearch(e.target.value); }
+});
+document.getElementById('showList').addEventListener('click', ()=>{
+  renderList();
+});
+
+// awal: kosong result
+doSearch('');
+</script>
+</body>
+</html>
